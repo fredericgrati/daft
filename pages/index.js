@@ -133,9 +133,11 @@ const getUniqRentals = (rentals = []) => [
 ]
 
 const UNSEEN = 'UNSEEN'
+const SEEN = 'SEEN'
 const FAV = 'FAV'
 
 const Home = () => {
+  const [interval, setInterval] = useState(10000)
   const [page, setPage] = useState(UNSEEN)
   const [rentals, setRentals] = useState([])
   const [seenRentals, setSeenRentals] = useState([])
@@ -166,12 +168,17 @@ const Home = () => {
   }, [rentals, seenRentals, favRentals])
 
   useInterval(async () => {
-    let list = await getRentals()
-    const listNewRentals = filterNewRental(rentals, list)
-    if (listNewRentals.length) {
-      setRentals(getUniqRentals([...rentals, ...listNewRentals]))
+    try {
+      let list = await getRentals()
+      const listNewRentals = filterNewRental(rentals, list)
+      if (listNewRentals.length) {
+        setRentals(getUniqRentals([...rentals, ...listNewRentals]))
+      }
+    } catch (e) {
+      console.error(e)
+      setInterval(null)
     }
-  }, 10000)
+  }, interval)
 
   return (
     <div className="container">
@@ -198,6 +205,13 @@ const Home = () => {
         onClick={() => setPage(UNSEEN)}
       >
         New Rentals
+      </button>
+
+      <button
+        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => setPage(SEEN)}
+      >
+        Seen Rentals
       </button>
 
       <button
@@ -231,6 +245,8 @@ const Home = () => {
       <div className="w-full flex flex-wrap">
         {(page === UNSEEN
           ? getUnseenRentals(rentals, seenRentals)
+          : page === SEEN
+          ? seenRentals
           : favRentals
         ).map((rental) => {
           const { id, price, address, gmapsUrl, imgUrl, url } = rental
