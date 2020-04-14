@@ -20,7 +20,7 @@ const asPrevButton = ($) => $('.prev_page').length
 const exportRentals = (rentals) => {
   navigator.clipboard.writeText(JSON.stringify(rentals)).then(
     function () {
-      console.log('Async: Copying to clipboard was successful!')
+      console.log('Copying to clipboard was successful!')
     },
     function (err) {
       console.error('Async: Could not copy text: ', err)
@@ -132,7 +132,11 @@ const getUniqRentals = (rentals = []) => [
   ...new Map(rentals.map((item) => [item['id'], item])).values(),
 ]
 
+const UNSEEN = 'UNSEEN'
+const FAV = 'FAV'
+
 const Home = () => {
+  const [page, setPage] = useState(UNSEEN)
   const [rentals, setRentals] = useState([])
   const [seenRentals, setSeenRentals] = useState([])
   const [favRentals, setFavRentals] = useState([])
@@ -172,7 +176,7 @@ const Home = () => {
   return (
     <div className="container">
       <Head>
-        <title>Create Next App</title>
+        <title>Daft.io</title>
         <link rel="icon" href="/favicon.ico" />
         <link
           href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/1.2.0/tailwind.css"
@@ -191,24 +195,44 @@ const Home = () => {
 
       <button
         className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => setSeenRentals(rentals)}
+        onClick={() => setPage(UNSEEN)}
       >
-        Hide everything
+        New Rentals
       </button>
+
       <button
         className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => exportRentals(seenRentals)}
+        onClick={() => setPage(FAV)}
       >
-        export seen rentals
+        ❤️ Rentals
       </button>
-      <button
-        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => exportRentals(rentals)}
-      >
-        export all rentals
-      </button>
+      {page === UNSEEN && (
+        <>
+          <button
+            className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => setSeenRentals(rentals)}
+          >
+            Hide everything
+          </button>
+          <button
+            className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => exportRentals(seenRentals)}
+          >
+            export seen rentals
+          </button>
+          <button
+            className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => exportRentals(rentals)}
+          >
+            export all rentals
+          </button>
+        </>
+      )}
       <div className="w-full flex flex-wrap">
-        {getUnseenRentals(rentals, seenRentals).map((rental) => {
+        {(page === UNSEEN
+          ? getUnseenRentals(rentals, seenRentals)
+          : favRentals
+        ).map((rental) => {
           const { id, price, address, gmapsUrl, imgUrl, url } = rental
           return (
             <div
@@ -232,7 +256,7 @@ const Home = () => {
                 <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
                   <a href={url}>daft</a>
                 </span>
-                <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700">
+                <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
                   <a href={gmapsUrl}>google</a>
                 </span>
                 <span
