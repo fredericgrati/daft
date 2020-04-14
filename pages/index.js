@@ -59,7 +59,8 @@ const parseRentalHtml = ($, element) => {
   const imgUrl = (/window\.portraitize\(\"(.*)\"/.exec(
     $(element).next().html()
   ) || ['', ''])[1]
-  const gmapsUrl = `https://www.google.com/maps/place/${encodeURIComponent(
+
+  const gmapsUrl = `https://www.google.com/maps/dir/Google,+Google+Building+Gordon+House,+4+Barrow+St,+Dublin,+D04+E5W5/${encodeURIComponent(
     address
   )}`
   const beds = (
@@ -89,7 +90,7 @@ const filterNewRental = (rentals, list) => {
   return list.filter((rental) => indexList.indexOf(rental.id) === -1)
 }
 
-const getRentals = async () => {
+const getRentals = async (setInterval) => {
   const fetchUrl = `${baseUrl}/${daftHostUrl}${url}`
   const res = await fetch(fetchUrl)
   const html = await res.text()
@@ -109,6 +110,7 @@ const getRentals = async () => {
       } else {
         direction = NEXT
         url = getNextPageUrl($)
+        setInterval(null)
       }
     }
   }
@@ -137,6 +139,7 @@ const SEEN = 'SEEN'
 const FAV = 'FAV'
 
 const Home = () => {
+  const [importData, setImportData] = useState([])
   const [interval, setInterval] = useState(10000)
   const [page, setPage] = useState(UNSEEN)
   const [rentals, setRentals] = useState([])
@@ -169,7 +172,7 @@ const Home = () => {
 
   useInterval(async () => {
     try {
-      let list = await getRentals()
+      let list = await getRentals(setInterval)
       const listNewRentals = filterNewRental(rentals, list)
       if (listNewRentals.length) {
         setRentals(getUniqRentals([...rentals, ...listNewRentals]))
@@ -185,6 +188,16 @@ const Home = () => {
       <Head>
         <title>Daft.io</title>
         <link rel="icon" href="/favicon.ico" />
+        <script
+          src="https://js.api.here.com/v3/3.1/mapsjs-core.js"
+          type="text/javascript"
+          charset="utf-8"
+        ></script>
+        <script
+          src="https://js.api.here.com/v3/3.1/mapsjs-service.js"
+          type="text/javascript"
+          charset="utf-8"
+        ></script>
         <link
           href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/1.2.0/tailwind.css"
           rel="stylesheet"
@@ -199,48 +212,72 @@ const Home = () => {
           rel="stylesheet"
         ></link>
       </Head>
-
       <button
-        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        className={`m-4 bg-blue-${
+          page === UNSEEN ? 700 : 400
+        } hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
         onClick={() => setPage(UNSEEN)}
       >
         New Rentals
       </button>
-
       <button
-        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        className={`m-4 bg-blue-${
+          page === SEEN ? 700 : 400
+        } hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
         onClick={() => setPage(SEEN)}
       >
         Seen Rentals
       </button>
-
       <button
-        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        className={`m-4 bg-blue-${
+          page === FAV ? 700 : 400
+        } hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
         onClick={() => setPage(FAV)}
       >
         ❤️ Rentals
       </button>
+      <input
+        onChange={(event) => {
+          setImportData(JSON.parse(event.target.value))
+        }}
+        className="ml-4 w-2 border-blue-300 border"
+        type="text"
+      />
+      <button
+        className="m-4 bg-blue-400 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => {
+          if (page === FAV) {
+            setFavRentals(importData)
+          } else if (page === SEEN) {
+            setSeenRentals(importData)
+          } else if (page === UNSEEN) {
+            setRentals(importData)
+          }
+        }}
+      >
+        Import
+      </button>
+      <button
+        className="m-4 bg-blue-400 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => {
+          if (page === FAV) {
+            exportRentals(favRentals)
+          } else if (page === SEEN) {
+            exportRentals(seenRentals)
+          } else if (page === UNSEEN) {
+            exportRentals(rentals)
+          }
+        }}
+      >
+        Export {page === UNSEEN ? 'ALL' : ''}
+      </button>
       {page === UNSEEN && (
-        <>
-          <button
-            className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => setSeenRentals(rentals)}
-          >
-            Hide everything
-          </button>
-          <button
-            className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => exportRentals(seenRentals)}
-          >
-            export seen rentals
-          </button>
-          <button
-            className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => exportRentals(rentals)}
-          >
-            export all rentals
-          </button>
-        </>
+        <button
+          className="m-4 bg-blue-400 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onClick={() => setSeenRentals(rentals)}
+        >
+          Hide everything
+        </button>
       )}
       <div className="w-full flex flex-wrap">
         {(page === UNSEEN
