@@ -265,11 +265,19 @@ const Home = () => {
                 </span>
                 <span
                   onClick={() =>
-                    setFavRentals(getUniqRentals([...favRentals, rental]))
+                    favRentals.find((favRental) => rental.id === favRental.id)
+                      ? setFavRentals(
+                          favRentals.filter(
+                            (favRental) => favRental.id !== rental.id
+                          )
+                        )
+                      : setFavRentals(getUniqRentals([...favRentals, rental]))
                   }
                   className="inline-block bg-purple-400 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 cursor-pointer"
                 >
-                  Save
+                  {favRentals.find((favRental) => favRental.id === rental.id)
+                    ? 'UnSave'
+                    : 'Save'}
                 </span>
               </div>
             </div>
