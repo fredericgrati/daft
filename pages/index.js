@@ -84,13 +84,9 @@ function timeout(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const filterNewRental = (oldRentals, newRentals, list) => {
-  let oldRentalIndexList = oldRentals.map(({ id }) => id)
-  let newRentalIndexList = newRentals.map(({ id }) => id)
-  const notNewRentalIndexList = [...oldRentalIndexList, ...newRentalIndexList]
-  return list.filter(
-    (rental) => notNewRentalIndexList.indexOf(rental.id) === -1
-  )
+const filterNewRental = (rentals, list) => {
+  const indexList = rentals.map(({ id }) => id)
+  return list.filter((rental) => indexList.indexOf(rental.id) === -1)
 }
 
 const getRentals = async () => {
@@ -127,25 +123,49 @@ const getRentals = async () => {
   return rentals
 }
 
+const getUnseenRentals = (rentals, seenRentals) => {
+  const seenRentalIds = seenRentals.map((seenRental) => seenRental.id)
+  return rentals.filter((rental) => seenRentalIds.indexOf(rental.id) === -1)
+}
+
+const getUniqRentals = (rentals = []) => [
+  ...new Map(rentals.map((item) => [item['id'], item])).values(),
+]
+
 const Home = () => {
-  const [newRentals, setNewRentals] = useState([])
-  const [oldRentals, setOldRentals] = useState([])
+  const [rentals, setRentals] = useState([])
+  const [seenRentals, setSeenRentals] = useState([])
+  const [favRentals, setFavRentals] = useState([])
 
   useEffect(() => {
-    setNewRentals(JSON.parse(localStorage.getItem('_newRentals')) || [])
-    setOldRentals(JSON.parse(localStorage.getItem('_oldRentals')) || [])
+    setRentals(
+      getUniqRentals(JSON.parse(localStorage.getItem('_rentals')) || [])
+    )
+    setSeenRentals(
+      getUniqRentals(JSON.parse(localStorage.getItem('_seenRentals')) || [])
+    )
+    setFavRentals(
+      getUniqRentals(JSON.parse(localStorage.getItem('_favRentals')) || [])
+    )
   }, [])
 
   useEffect(() => {
-    localStorage.setItem('_newRentals', JSON.stringify(newRentals))
-    localStorage.setItem('_oldRentals', JSON.stringify(oldRentals))
-  }, [newRentals, oldRentals])
+    localStorage.setItem('_rentals', JSON.stringify(getUniqRentals(rentals)))
+    localStorage.setItem(
+      '_seenRentals',
+      JSON.stringify(getUniqRentals(seenRentals))
+    )
+    localStorage.setItem(
+      '_favRentals',
+      JSON.stringify(getUniqRentals(favRentals))
+    )
+  }, [rentals, seenRentals, favRentals])
 
   useInterval(async () => {
     let list = await getRentals()
-    const listNewRentals = filterNewRental(oldRentals, newRentals, list)
+    const listNewRentals = filterNewRental(rentals, list)
     if (listNewRentals.length) {
-      setNewRentals(listNewRentals)
+      setRentals(getUniqRentals([...rentals, ...listNewRentals]))
     }
   }, 10000)
 
@@ -171,25 +191,25 @@ const Home = () => {
 
       <button
         className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => setOldRentals([...oldRentals, ...newRentals])}
+        onClick={() => setSeenRentals(rentals)}
       >
-        Set everything to old
+        Hide everything
       </button>
       <button
         className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => exportRentals(oldRentals)}
+        onClick={() => exportRentals(seenRentals)}
       >
-        export old rentals
+        export seen rentals
       </button>
       <button
         className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => exportRentals(newRentals)}
+        onClick={() => exportRentals(rentals)}
       >
-        export new rentals
+        export all rentals
       </button>
       <div className="w-full flex flex-wrap">
-        {newRentals.map((rental) => {
-          const { id, price, address, gmapsUrl, imgUrl, beds, url } = rental
+        {getUnseenRentals(rentals, seenRentals).map((rental) => {
+          const { id, price, address, gmapsUrl, imgUrl, url } = rental
           return (
             <div
               key={`${url}-${id}`}
@@ -202,14 +222,9 @@ const Home = () => {
               </div>
               <div className="px-6 py-4">
                 <span
-                  onClick={() => {
-                    setOldRentals([...oldRentals, rental])
-                    setNewRentals([
-                      ...newRentals.filter(
-                        (_rental) => _rental.id !== rental.id
-                      ),
-                    ])
-                  }}
+                  onClick={() =>
+                    setSeenRentals(getUniqRentals([...seenRentals, rental]))
+                  }
                   className="inline-block bg-red-400 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 cursor-pointer"
                 >
                   Hide
@@ -219,6 +234,14 @@ const Home = () => {
                 </span>
                 <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700">
                   <a href={gmapsUrl}>google</a>
+                </span>
+                <span
+                  onClick={() =>
+                    setFavRentals(getUniqRentals([...favRentals, rental]))
+                  }
+                  className="inline-block bg-purple-400 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 cursor-pointer"
+                >
+                  Save
                 </span>
               </div>
             </div>
