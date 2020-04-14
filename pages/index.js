@@ -29,7 +29,6 @@ const exportRentals = (rentals) => {
 }
 
 const getImgs = async (url) => {
-  console.log('getImgs', url)
   const res = await fetch(
     'https://cors-anywhere.herokuapp.com/https://www.daft.ie/dublin/apartments-for-rent/ballsbridge/mespil-estate-sussex-road-ballsbridge-dublin-2019208/'
   )
@@ -38,15 +37,12 @@ const getImgs = async (url) => {
 
   const imgs = []
   $('li.pbxl_carousel_item img').map((index, img) => {
-    console.log(img.src)
     imgs.push(img.src)
   })
   return imgs
 }
 
 const parseRentalHtml = ($, element) => {
-  console.log('parseRentalHtml')
-
   const url = `${daftHostUrl}${$(
     '.PropertyInformationCommonStyles__propertyPrice--link',
     element
@@ -88,9 +84,13 @@ function timeout(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const filterNewRental = (oldRentals, list) => {
+const filterNewRental = (oldRentals, newRentals, list) => {
   let oldRentalIndexList = oldRentals.map(({ id }) => id)
-  return list.filter((rental) => oldRentalIndexList.indexOf(rental.id) === -1)
+  let newRentalIndexList = newRentals.map(({ id }) => id)
+  const notNewRentalIndexList = [...oldRentalIndexList, ...newRentalIndexList]
+  return list.filter(
+    (rental) => notNewRentalIndexList.indexOf(rental.id) === -1
+  )
 }
 
 const getRentals = async () => {
@@ -132,24 +132,21 @@ const Home = () => {
   const [oldRentals, setOldRentals] = useState([])
 
   useEffect(() => {
+    setNewRentals(JSON.parse(localStorage.getItem('_newRentals')) || [])
+    setOldRentals(JSON.parse(localStorage.getItem('_oldRentals')) || [])
+  }, [])
+
+  useEffect(() => {
     localStorage.setItem('_newRentals', JSON.stringify(newRentals))
     localStorage.setItem('_oldRentals', JSON.stringify(oldRentals))
   }, [newRentals, oldRentals])
 
-  useEffect(() => {
-    const newRentals = JSON.parse(localStorage.getItem('_newRentals'))
-    const oldRentals = JSON.parse(localStorage.getItem('_oldRentals'))
-    if (newRentals) {
-      setNewRentals(newRentals)
-    }
-    if (oldRentals) {
-      setOldRentals(oldRentals)
-    }
-  }, [])
-
   useInterval(async () => {
     let list = await getRentals()
-    setNewRentals(filterNewRental(oldRentals, list))
+    const listNewRentals = filterNewRental(oldRentals, newRentals, list)
+    if (listNewRentals.length) {
+      setNewRentals(listNewRentals)
+    }
   }, 10000)
 
   return (
@@ -157,188 +154,77 @@ const Home = () => {
       <Head>
         <title>Create Next App</title>
         <link rel="icon" href="/favicon.ico" />
+        <link
+          href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/1.2.0/tailwind.css"
+          rel="stylesheet"
+        ></link>
+
+        <link
+          href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/1.2.0/utilities.css"
+          rel="stylesheet"
+        ></link>
+        <link
+          href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/1.2.0/components.css"
+          rel="stylesheet"
+        ></link>
       </Head>
 
-      <main>
-        <h1 className="title">Welcome to Daft.io</h1>
-        <button onClick={() => exportRentals(oldRentals)}>
-          export old rentals
-        </button>
-        <button onClick={() => exportRentals(oldRentals)}>
-          export new rentals
-        </button>
-
-        <div className="grid">
-          {newRentals.map((rental) => {
-            const { id, price, address, gmapsUrl, imgUrl, beds, url } = rental
-            return (
-              <div key={id} className="card">
-                <h3>{price}</h3>
-                <button onClick={() => setOldRentals([...oldRentals, rental])}>
-                  nope
-                </button>
-                <p>{address}</p>
-                <img src={imgUrl} />
-                <p>{beds} beds</p>
-                <a href={url}>go to daft</a>
-                <a href={gmapsUrl}>google</a>
+      <button
+        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => setOldRentals([...oldRentals, ...newRentals])}
+      >
+        Set everything to old
+      </button>
+      <button
+        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => exportRentals(oldRentals)}
+      >
+        export old rentals
+      </button>
+      <button
+        className="m-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => exportRentals(newRentals)}
+      >
+        export new rentals
+      </button>
+      <div className="w-full flex flex-wrap">
+        {newRentals.map((rental) => {
+          const { id, price, address, gmapsUrl, imgUrl, beds, url } = rental
+          return (
+            <div
+              key={`${url}-${id}`}
+              className="rounded overflow-hidden shadow-lg  w-1/4 m-4"
+            >
+              <img className="w-full" src={imgUrl} />
+              <div className="px-6 py-4">
+                <div className="font-bold text-xl mb-2">{price}</div>
+                <p className="text-gray-700 text-base">{address}</p>
               </div>
-            )
-          })}
-        </div>
-      </main>
-
-      <footer>
-        <a
-          href="https://zeit.co?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by <img src="/zeit.svg" alt="ZEIT Logo" />
-        </a>
-      </footer>
-
-      <style jsx>{`
-        .container {
-          min-height: 100vh;
-          padding: 0 0.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        main {
-          padding: 5rem 0;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer {
-          width: 100%;
-          height: 100px;
-          border-top: 1px solid #eaeaea;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer img {
-          margin-left: 0.5rem;
-        }
-
-        footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        a {
-          color: inherit;
-          text-decoration: none;
-        }
-
-        .title a {
-          color: #0070f3;
-          text-decoration: none;
-        }
-
-        .title a:hover,
-        .title a:focus,
-        .title a:active {
-          text-decoration: underline;
-        }
-
-        .title {
-          margin: 0;
-          line-height: 1.15;
-          font-size: 4rem;
-        }
-
-        .title,
-        .description {
-          text-align: center;
-        }
-
-        .description {
-          line-height: 1.5;
-          font-size: 1.5rem;
-        }
-
-        code {
-          background: #fafafa;
-          border-radius: 5px;
-          padding: 0.75rem;
-          font-size: 1.1rem;
-          font-family: Menlo, Monaco, Lucida Console, Liberation Mono,
-            DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
-        }
-
-        .grid {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-
-          max-width: 800px;
-          margin-top: 3rem;
-        }
-
-        .card {
-          margin: 1rem;
-          flex-basis: 45%;
-          padding: 1.5rem;
-          text-align: left;
-          color: inherit;
-          text-decoration: none;
-          border: 1px solid #eaeaea;
-          border-radius: 10px;
-          transition: color 0.15s ease, border-color 0.15s ease;
-        }
-
-        .card:hover,
-        .card:focus,
-        .card:active {
-          color: #0070f3;
-          border-color: #0070f3;
-        }
-
-        .card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1.5rem;
-        }
-
-        .card p {
-          margin: 0;
-          font-size: 1.25rem;
-          line-height: 1.5;
-        }
-
-        @media (max-width: 600px) {
-          .grid {
-            width: 100%;
-            flex-direction: column;
-          }
-        }
-      `}</style>
-
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
+              <div className="px-6 py-4">
+                <span
+                  onClick={() => {
+                    setOldRentals([...oldRentals, rental])
+                    setNewRentals([
+                      ...newRentals.filter(
+                        (_rental) => _rental.id !== rental.id
+                      ),
+                    ])
+                  }}
+                  className="inline-block bg-red-400 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 cursor-pointer"
+                >
+                  Hide
+                </span>
+                <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
+                  <a href={url}>daft</a>
+                </span>
+                <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700">
+                  <a href={gmapsUrl}>google</a>
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
