@@ -10,7 +10,7 @@ let direction = NEXT
 const baseUrl = 'https://cors-anywhere.herokuapp.com'
 const daftHostUrl = 'https://www.daft.ie'
 let url =
-  '/dublin-city/residential-property-for-rent/?mnp=1600&mxp=2300&mnb=1&mxb=2&s%5Bmnp%5D=1600&s%5Bmxp%5D=2300&s%5Bmnb%5D=1&s%5Bmxb%5D=2&s%5Badvanced%5D=1&s%5Bignored_agents%5D%5B0%5D=1551&s%5Bsort_by%5D=price&s%5Bsort_type%5D=d&searchSource=rental'
+  '/dublin-city/residential-property-for-rent/?mnp=1500&mxp=2300&mnb=1&mxb=2&s%5Bmnp%5D=1600&s%5Bmxp%5D=2300&s%5Bmnb%5D=1&s%5Bmxb%5D=2&s%5Badvanced%5D=1&s%5Bignored_agents%5D%5B0%5D=1551&s%5Bsort_by%5D=price&s%5Bsort_type%5D=d&searchSource=rental'
 
 const asNextButton = ($) => $('.next_page').length
 const getNextPageUrl = ($) => `${$('.next_page a').attr('href')}`
@@ -254,10 +254,14 @@ const Home = () => {
                   Hide
                 </span>
                 <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
-                  <a href={url}>daft</a>
+                  <a target="_blank" href={url}>
+                    daft
+                  </a>
                 </span>
                 <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
-                  <a href={gmapsUrl}>google</a>
+                  <a target="_blank" href={gmapsUrl}>
+                    google
+                  </a>
                 </span>
                 <span
                   onClick={() =>
