@@ -276,7 +276,7 @@ const Home = () => {
           className="m-4 bg-blue-400 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           onClick={() => setSeenRentals(rentals)}
         >
-          Hide everything
+          Hide ALL
         </button>
       )}
       <div className="w-full flex flex-wrap">
